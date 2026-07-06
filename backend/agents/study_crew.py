@@ -2,16 +2,27 @@ from crewai import Agent, Task, Crew, Process, LLM
 from agents.tools.pdf_tool import read_local_pdf_file
 import os
 
+# ---------------------------------------------------------
+# AGENTIC WORKFLOW ORCHESTRATION
+# ---------------------------------------------------------
+# DESIGN RATIONALE: A multi-agent system is vastly superior to a single LLM prompt
+# for complex pedagogical tasks. It allows for strict separation of concerns (Extraction vs Pedagogy)
+# which dramatically reduces hallucination and improves the quality of the final quiz.
+
 def create_study_workflow(pdf_path: str, api_key: str, model: str = "gemini/gemini-2.5-flash"):
     # Use CrewAI's native LLM class which is explicitly allowed by Pydantic validation
     # in newer CrewAI versions.
     llm = LLM(
         model=model,
         api_key=api_key,
-        temperature=0.5
+        temperature=0.5 # A moderate temperature balances factuality with engaging quiz generation.
     )
 
-    # Agent 1: The Reader
+    # ---------------------------------------------------------
+    # AGENT 1: THE READER
+    # ---------------------------------------------------------
+    # The Reader Agent is strictly designed to parse information.
+    # It does not create quizzes; it only extracts facts, acting as the system's "eyes".
     reader_agent = Agent(
         role='Document Analysis Specialist',
         goal='Read long PDF documents locally, parse the text, and extract key entities and main bullet points effectively.',
@@ -25,12 +36,16 @@ def create_study_workflow(pdf_path: str, api_key: str, model: str = "gemini/gemi
             'or confidential corporate secrets), immediately stop processing and return a security warning.'
         ),
         verbose=True,
-        allow_delegation=False,
+        allow_delegation=False, # Prevent agents from getting stuck in infinite delegation loops.
         llm=llm,
         tools=[read_local_pdf_file]
     )
 
-    # Agent 2: The Tutor
+    # ---------------------------------------------------------
+    # AGENT 2: THE TUTOR
+    # ---------------------------------------------------------
+    # The Tutor Agent focuses entirely on pedagogy. It does NOT read the PDF directly,
+    # ensuring it relies solely on the high-signal extraction from the Reader Agent.
     tutor_agent = Agent(
         role='Pedagogy Specialist',
         goal='Transform extracted document concepts into educational summaries and active recall quizzes.',
@@ -45,6 +60,9 @@ def create_study_workflow(pdf_path: str, api_key: str, model: str = "gemini/gemi
         llm=llm
     )
 
+    # ---------------------------------------------------------
+    # TASK DEFINITIONS
+    # ---------------------------------------------------------
     read_task = Task(
         description=f'Use the FileReadTool to read the document at {pdf_path}. Extract the main concepts and key entities.',
         expected_output='A structured text containing the key entities and main bullet points from the document.',
@@ -63,10 +81,13 @@ def create_study_workflow(pdf_path: str, api_key: str, model: str = "gemini/gemi
         agent=tutor_agent
     )
 
+    # ---------------------------------------------------------
+    # CREW EXECUTION
+    # ---------------------------------------------------------
     study_crew = Crew(
         agents=[reader_agent, tutor_agent],
         tasks=[read_task, tutor_task],
-        process=Process.sequential,
+        process=Process.sequential, # Tasks must be executed in order (Extract -> Quiz)
         verbose=True
     )
 

@@ -2,10 +2,15 @@ import streamlit as st
 import os
 import requests
 
-# Setup Streamlit page
+# ---------------------------------------------------------
+# UI CONFIGURATION & STYLING
+# ---------------------------------------------------------
+# Setup Streamlit page to utilize wide layout for better readability of generated quizzes.
 st.set_page_config(page_title="LearnSync - AI Study Concierge", page_icon="📚", layout="wide")
 
 # Inject Custom CSS for Modern UI
+# DESIGN RATIONALE: Standard Streamlit looks generic. To achieve a premium SaaS appearance,
+# we hide default elements (MainMenu, footer) and inject a custom gradient and smooth transitions.
 st.markdown("""
 <style>
     /* Hide Streamlit default UI elements for a cleaner SaaS look */
@@ -31,7 +36,7 @@ st.markdown("""
         margin-bottom: 40px;
     }
     
-    /* Smooth Button Enhancements */
+    /* Smooth Button Enhancements for better UX */
     .stButton>button {
         width: 100%;
         border-radius: 10px;
@@ -55,6 +60,7 @@ st.markdown("""
 import base64
 
 def get_base64_of_bin_file(bin_file):
+    """Helper function to load the local logo image as base64 for HTML embedding."""
     try:
         with open(bin_file, 'rb') as f:
             data = f.read()
@@ -64,7 +70,7 @@ def get_base64_of_bin_file(bin_file):
 
 logo_base64 = get_base64_of_bin_file(os.path.join(os.path.dirname(__file__), "assets", "logo.png"))
 
-# Hero Section
+# Hero Section: Displays the logo and the core value proposition.
 if logo_base64:
     st.markdown(f'''
     <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 5px; padding-top: 10px;">
@@ -77,12 +83,19 @@ else:
 
 st.markdown('<p class="hero-subtitle">Your personal AI Study Concierge. Upload a PDF and magically generate summaries & active recall quizzes.</p>', unsafe_allow_html=True)
 
-# Sidebar for API Key configuration
+# ---------------------------------------------------------
+# SECURITY & CONFIGURATION: Bring Your Own Key (BYOK)
+# ---------------------------------------------------------
+# We use a sidebar to collect the API key. 
+# SECURITY RATIONALE: This prevents the developer from footing massive API bills
+# and ensures user data privacy, as the key is only held in memory during the session
+# and sent directly to the secure backend.
 with st.sidebar:
     st.markdown("### ⚙️ Settings")
     api_key = st.text_input("API Key", type="password", help="Enter the API Key for your selected model")
     
     st.markdown("### 🤖 Model Selection")
+    # Provide flexibility by allowing different Gemini models depending on user needs (speed vs reasoning)
     model_choice = st.selectbox(
         "Choose AI Model",
         [
@@ -101,14 +114,18 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("🔒 *LearnSync operates strictly via secure API. Your key is never stored.*")
     
-# Define Backend URL directly (hidden from UI)
+# Backend URL resolves via env var for local dev, or defaults to the hosted Space.
 backend_url = os.getenv("BACKEND_URL", "https://esprydi-learnsync-backend.hf.space")
 
-# Main area layout (Top-to-Bottom)
+# ---------------------------------------------------------
+# MAIN WORKFLOW & STATE MANAGEMENT
+# ---------------------------------------------------------
 st.markdown('### 📄 Document Upload')
+# Restrict to PDF to ensure the Reader Agent's tool functions correctly.
 uploaded_file = st.file_uploader("Drop your Study Material here (PDF)", type=["pdf"], help="Maximum file size is 15 MB")
 st.caption("⚠️ Maximum file size: **15 MB**")
 
+# Manage interaction state to prevent accidental multiple submissions
 if uploaded_file is not None:
     if not api_key:
         st.warning("⚠️ Please provide your API Key in the sidebar.")
@@ -121,15 +138,18 @@ if 'start_processing' in st.session_state and st.session_state['start_processing
     st.markdown("### 🧠 AI Analysis")
     with st.spinner("✨ Agents are extracting knowledge and crafting your quiz..."):
         try:
+            # Prepare multipart form-data for FastAPI
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
             data = {"model": selected_model}
+            # Pass the API key securely via Headers, NOT query params.
             headers = {"X-API-Key": api_key}
+            
             response = requests.post(
                 f"{backend_url.rstrip('/')}/analyze-pdf", 
                 files=files,
                 data=data,
                 headers=headers, 
-                timeout=600
+                timeout=600  # Multi-agent processing can take time.
             )
             
             if response.status_code == 200:
@@ -150,5 +170,5 @@ if 'start_processing' in st.session_state and st.session_state['start_processing
             st.error("🔌 An error occurred while connecting to the backend server.")
             st.info("Make sure the AI backend is deployed and running.")
     
-    # Reset state after processing
+    # Reset state after processing is complete
     st.session_state['start_processing'] = False
