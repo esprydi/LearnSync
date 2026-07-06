@@ -41,12 +41,22 @@ LearnSync/
 
 ---
 
-## 🚀 How to Run Locally
+## 🚀 How to Run
 
-If you wish to run both the frontend and backend on your local machine, follow these steps:
+By default, the backend is **already deployed** in the cloud. You only need to run the frontend to use the application.
 
-### 1. Start the Backend (FastAPI)
-Open a terminal and navigate to the `backend` folder:
+### 1. Run the Frontend (Streamlit)
+Open a terminal and navigate to the `frontend` folder:
+```bash
+cd frontend
+pip install -r requirements.txt
+streamlit run app.py
+```
+*Your browser will automatically open the LearnSync UI. It will connect to the live backend automatically.*
+
+### 2. (Optional) Run the Backend Locally
+If you want to modify the backend or run it locally instead of using the deployed version:
+Open a **new** terminal and navigate to the `backend` folder:
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -54,23 +64,14 @@ uvicorn api.main:app --reload
 ```
 *The backend will start running on `http://localhost:8000`*
 
-### 2. Start the Frontend (Streamlit)
-Open a **new** terminal and navigate to the `frontend` folder:
-```bash
-cd frontend
-pip install -r requirements.txt
-streamlit run app.py
-```
-*Your browser will automatically open the LearnSync UI.*
-
-*(Note: If you have deployed the backend to Hugging Face, ensure the `backend_url` in `frontend/app.py` points to your Hugging Face Space URL).*
+*(Note: If you run the backend locally, you must tell the frontend to use it by setting the environment variable before running the frontend: `export BACKEND_URL=http://localhost:8000` (on Linux/Mac) or `set BACKEND_URL=http://localhost:8000` (on Windows). Otherwise, the frontend will connect to the deployed cloud version by default).*
 
 ---
 
 ## 📖 User Guide (How to Use)
 
 1. **Get an API Key:** Obtain a free Gemini API Key from [Google AI Studio](https://aistudio.google.com/).
-2. **Configure the App:** Open the LearnSync web app. In the left sidebar, paste your Google API Key into the configuration field. *(Rest assured, this key is only sent directly to the API and is never saved/logged).*
+2. **Configure the App:** Open the LearnSync web app. In the left sidebar, paste your Google API Key into the configuration field and select your preferred AI Model (e.g., Gemini 2.5 Flash, Gemini 1.5 Pro). *(Rest assured, this key is only sent directly to the API and is never saved/logged).*
 3. **Upload Material:** In the main area, upload your study material in **PDF format** (Maximum size: 15 MB).
 4. **Start Learning:** Click the **"Start Learning Process"** button.
 5. **Wait for the Magic:** The AI agents will begin reading and analyzing your document. This sequential agentic process takes about **30 to 90 seconds**.
