@@ -2,11 +2,11 @@ from crewai import Agent, Task, Crew, Process, LLM
 from agents.tools.pdf_tool import read_local_pdf_file
 import os
 
-def create_study_workflow(pdf_path: str, api_key: str):
+def create_study_workflow(pdf_path: str, api_key: str, model: str = "gemini/gemini-2.5-flash"):
     # Use CrewAI's native LLM class which is explicitly allowed by Pydantic validation
     # in newer CrewAI versions.
     llm = LLM(
-        model="gemini/gemini-2.5-flash",
+        model=model,
         api_key=api_key,
         temperature=0.5
     )

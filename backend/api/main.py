@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Header
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Form
 import shutil
 import os
 import tempfile
@@ -18,12 +18,13 @@ def read_root():
 @app.post("/analyze-pdf", response_model=AnalysisResponse)
 def analyze_pdf(
     file: UploadFile = File(...), 
-    x_google_api_key: Optional[str] = Header(None)
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    model: str = Form("gemini/gemini-2.5-flash")
 ):
-    if not x_google_api_key:
+    if not x_api_key:
         raise HTTPException(
             status_code=401, 
-            detail="Google API Key is missing. Please provide it via X-Google-API-Key header."
+            detail="API Key is missing. Please provide it via X-API-Key header."
         )
         
     if not file.filename.endswith('.pdf'):
@@ -48,7 +49,7 @@ def analyze_pdf(
             tmp_path = tmp_file.name
         
         # Run the agent workflow with the provided API key
-        result = create_study_workflow(tmp_path, api_key=x_google_api_key)
+        result = create_study_workflow(tmp_path, api_key=x_api_key, model=model)
         
         return {"result": result}
     

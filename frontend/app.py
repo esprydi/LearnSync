@@ -80,7 +80,39 @@ st.markdown('<p class="hero-subtitle">Your personal AI Study Concierge. Upload a
 # Sidebar for API Key configuration
 with st.sidebar:
     st.markdown("### ⚙️ Settings")
-    api_key = st.text_input("Google API Key", type="password", help="Enter your Gemini API Key from Google AI Studio")
+    api_key = st.text_input("API Key", type="password", help="Enter the API Key for your selected model")
+    
+    st.markdown("### 🤖 Model Selection")
+    model_choice = st.selectbox(
+        "Choose AI Model",
+        [
+            "Gemini 2.5 Flash", "Gemini 2.5 Pro", "Gemini 1.5 Pro", "Gemini 1.5 Flash",
+            "GPT-4o", "GPT-4o-mini", "GPT-4 Turbo", "GPT-3.5 Turbo",
+            "Claude 3.5 Sonnet", "Claude 3 Opus", "Claude 3 Haiku",
+            "Groq: Llama 3 70B", "Groq: Llama 3 8B", "Groq: Mixtral 8x7B",
+            "Mistral Large"
+        ],
+        index=0
+    )
+    
+    model_map = {
+        "Gemini 2.5 Flash": "gemini/gemini-2.5-flash",
+        "Gemini 2.5 Pro": "gemini/gemini-2.5-pro",
+        "Gemini 1.5 Pro": "gemini/gemini-1.5-pro",
+        "Gemini 1.5 Flash": "gemini/gemini-1.5-flash",
+        "GPT-4o": "gpt-4o",
+        "GPT-4o-mini": "gpt-4o-mini",
+        "GPT-4 Turbo": "gpt-4-turbo",
+        "GPT-3.5 Turbo": "gpt-3.5-turbo",
+        "Claude 3.5 Sonnet": "claude-3-5-sonnet-20240620",
+        "Claude 3 Opus": "claude-3-opus-20240229",
+        "Claude 3 Haiku": "claude-3-haiku-20240307",
+        "Groq: Llama 3 70B": "groq/llama3-70b-8192",
+        "Groq: Llama 3 8B": "groq/llama3-8b-8192",
+        "Groq: Mixtral 8x7B": "groq/mixtral-8x7b-32768",
+        "Mistral Large": "mistral/mistral-large-latest"
+    }
+    selected_model = model_map[model_choice]
     st.markdown("---")
     st.markdown("🔒 *LearnSync operates strictly via secure API. Your key is never stored.*")
     
@@ -94,7 +126,7 @@ st.caption("⚠️ Maximum file size: **15 MB**")
 
 if uploaded_file is not None:
     if not api_key:
-        st.warning("⚠️ Please provide your Google API Key in the sidebar.")
+        st.warning("⚠️ Please provide your API Key in the sidebar.")
     else:
         if st.button("🚀 Start Learning Process"):
             st.session_state['start_processing'] = True
@@ -105,10 +137,12 @@ if 'start_processing' in st.session_state and st.session_state['start_processing
     with st.spinner("✨ Agents are extracting knowledge and crafting your quiz..."):
         try:
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
-            headers = {"X-Google-API-Key": api_key}
+            data = {"model": selected_model}
+            headers = {"X-API-Key": api_key}
             response = requests.post(
                 f"{backend_url.rstrip('/')}/analyze-pdf", 
-                files=files, 
+                files=files,
+                data=data,
                 headers=headers, 
                 timeout=600
             )
